@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css" integrity="sha384-Smlep5jCw/wG7hdkwQ/Z5nLIefveQRIY9nfy6xoR1uRYBtpZgI6339F5dgvm/e9B" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../css/nav.css">
+    <link rel="stylesheet" href="https://cdn.quilljs.com/1.3.6/quill.bubble.css">
+
+    <title>front-end learning</title>
+
+  </head>
+  <body>
+    <div id="left">
+        <div class="nav-side-menu">
+            <div class="brand"><b><span i18n_key="longduGlobalMgr">Michael Yang's Tech Blog</span></b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a id="a_i18n_cn" style="font-weight: normal;color:#337ab7;">中</a><span style="color: #337ab7">|</span><a id="a_i18n_en" style="font-weight: normal;color:#337ab7;">EN</a></div>
+            <div class="menu-list">
+                <ul id="menu-content" class="menu-content collapse in">
+                </ul>
+            </div>
+        </div>        
+    </div>
+    <div id="editor" style="color:#e1ffff">
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js" integrity="sha384-o+RDsa0aLu++PJvFqy8fFScvbHFLtbvScb8AjopnFD+iEQ7wo/CG0xlczd+2O/em" crossorigin="anonymous"></script>
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script type="text/javascript">
+        $(function(){
+            var quill;
+            initMenu();
+            initEditor();
+            
+            function initEditor() {
+                quill = new Quill('#editor', {
+                    readOnly: true,
+                    theme: 'bubble'
+                });
+            }
+    
+            function initMenu() {
+                $.ajax({
+                    type: "GET",
+                    async: false,
+                    url: "https://blog.geekstylecn.com/menu",
+                    dataType: "json", //表示返回值类型，不必须
+                    error: function(response) {
+                        alert(response.code);
+                        console.log(menuList);
+                    },
+                    success: function(menuList) {
+                        console.log(menuList);
+                        for (var index in menuList) {
+                            if(menuList[index].pid == 0) {
+                                $("#menu-content").append('<li data-toggle="collapse" data-target="#mainNav'+ index +'" class="collapsed"><a href="#"><i class="'+ menuList[index].icon +'"></i><span i18n_key="'+ menuList[index].i18nKey +'">'+ menuList[index].name +'</span><span class="arrow"></span></a></li><ul class="sub-menu collapse" id="mainNav'+ index +'"></ul>');
+                                var subMenuList = menuList[index].subMenuList;
+                                for (var subIndex in subMenuList) {
+                                    $("#mainNav"+index).append('<li focused="false"><a i18n_key="'+ subMenuList[subIndex].i18nKey +'" target="mainFrame" href="'+ subMenuList[subIndex].url +'">'+ subMenuList[subIndex].name +'</a></li>');
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        
+            $("#a_i18n_en").click(function () {
+                localStorage.setItem("i18n_language","en");
+                i18n("en");
+            });
+    
+            $("#a_i18n_cn").click(function () {
+                localStorage.setItem("i18n_language","zh-CN");
+                i18n("cn");
+            });
+    
+            function i18n(language) {
+                var i18nKeyArray = "";
+                $("[i18n_key]").each(function() {
+                    i18nKey = $(this).attr("i18n_key");
+                    if( i18nKey != null && i18nKey != "" && i18nKey != "null") {
+                        i18nKeyArray = i18nKeyArray + i18nKey + ",";
+                    }
+                });
+    
+                if(i18nKeyArray == "") {
+                    return;
+                }
+                i18nKeyArray = i18nKeyArray.substr(0,i18nKeyArray.length-1);
+    
+                $.ajax({
+                    type: "GET",
+                    async: false,
+                    url: "/i18n/getI18nMap.do",
+                    data: {"language":language,"i18nKeyArray":i18nKeyArray},
+                    dataType: "json", //表示返回值类型，不必须
+                    error: function(response) {
+                        alert(response.code);
+                    },
+                    success: function(response) {
+                        var code  = response.code;
+                        if(code == "0000") {
+                            var i18nList = response.data;
+                            if(i18nList == null || i18nList.length == 0) {
+                                return;
+                            }
+                            for (var index in i18nList) {
+                                $("[i18n_key="+ i18nList[index].key +"]").text(i18nList[index].value);
+                            }
+    
+                        }else {
+                            alert(response.desc);
+                        }
+                    }
+                });
+            }
+    
+            //initI18n();
+    
+            function initI18n() {
+                var language = getLanguage();
+                if(language != 'zh-CN' && language != 'zh') {
+                    localStorage.setItem("i18n_language","en");
+                    i18n("en");
+                }
+            }
+    
+            function getLanguage(){
+                var language = localStorage.getItem("i18n_language");
+                if(language != null) {
+                    return language;
+                }else if (navigator.languages != undefined) {
+                    return navigator.languages[0];
+                }else if(navigator.browserLanguage != undefined) {
+                    return navigator.browserLanguage;
+                }else if(navigator.systemLanguage != undefined) {
+                    return navigator.systemLanguage;
+                }else {
+                    return navigator.language;
+                }
+            }
+    
+            $("[focused='false']").click(function (event ) {
+                event.preventDefault();
+                $("[focused='true']").css("background-color", "#181c20");
+                $("[focused='true']").attr("focused","false");
+                $(this).css("background-color", "#020203");
+                $(this).attr("focused","true");
+                
+                $.ajax({
+                    type: "GET",
+                    async: false,
+                    url: "https://bwoil-file.oss-cn-hongkong.aliyuncs.com/pda/richtexttest",
+                    dataType: "json", //表示返回值类型，不必须
+                    error: function(response) {
+                        alert(response.code);
+                        console.log(response.code);
+                    },
+                    success: function(response) {
+                        console.log("response" + response);
+                        quill.setContents(response);
+                    }
+                });
+
+            });
+    
+        });
+    </script>
+
+  </body>
+</html>
